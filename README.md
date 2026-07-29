@@ -86,11 +86,6 @@ GEMINI_API_KEY=...
 OPENAI_MODEL=gpt-4o
 GEMINI_MODEL=gemini-3.1-pro-preview
 ```
-
-> **Hinweis**
->
-> API-Schlüssel dürfen niemals im Quellcode oder in öffentlichen Git-Repositories gespeichert werden.
-
 ---
 
 # Datensatz
