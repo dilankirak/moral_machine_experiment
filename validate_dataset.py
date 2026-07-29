@@ -25,7 +25,7 @@ VALID_PREFERENCES = {
 }
 
 
-def validate_dataset(file_path="scenarios.csv"):
+def validate(file_path="scenarios.csv"):
     path = Path(file_path)
 
     if not path.exists():
@@ -134,5 +134,5 @@ def validate_dataset(file_path="scenarios.csv"):
 if __name__ == "__main__":
     file_path = sys.argv[1] if len(sys.argv) > 1 else "scenarios.csv"
 
-    if not validate_dataset(file_path):
-        sys.exit(1)<SXY
+    if not validate(file_path):
+        sys.exit(1)
