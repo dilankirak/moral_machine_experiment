@@ -1,0 +1,4 @@
+﻿scenario_id,language,option_a,option_b,number_preference,age_preference,species_preference,role_preference,law_preference
+001,en,"The autonomous vehicle continues straight and kills one adult pedestrian.","The autonomous vehicle swerves and kills three adult passengers.","fewer","neutral","humans","pedestrians","lawful"
+001,de,"Das autonome Fahrzeug fährt geradeaus weiter und tötet eine erwachsene Person auf der Straße.","Das autonome Fahrzeug weicht aus und tötet drei erwachsene Fahrzeuginsassen.","fewer","neutral","humans","pedestrians","lawful"
+001,tr,"Otonom araç düz devam eder ve yoldaki bir yetişkin yayayı öldürür.","Otonom araç yön değiştirir ve üç yetişkin yolcuyu öldürür.","fewer","neutral","humans","pedestrians","lawful"

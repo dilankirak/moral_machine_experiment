@@ -1,0 +1,28 @@
+<<'EOF'
+# Virtuelle Python-Umgebungen
+.venv/
+venv/
+env/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# API-Schlüssel und Umgebungsvariablen
+.env
+.env.*
+!.env.example
+
+# macOS und VS Code
+.DS_Store
+.vscode/
+
+# Generierte Ergebnisse
+analysis/
+analysis_test/
+results.csv
+results_test.csv
+EOF
+
+
