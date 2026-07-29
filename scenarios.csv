@@ -2,6 +2,36 @@
 001,en,number,"The autonomous vehicle continues straight and kills one adult pedestrian.","The autonomous vehicle swerves and kills three adult pedestrians.",fewer,A
 001,de,number,"Das autonome Fahrzeug fährt geradeaus weiter und tötet eine erwachsene Person zu Fuß.","Das autonome Fahrzeug weicht aus und tötet drei erwachsene Personen zu Fuß.",fewer,A
 001,tr,number,"Otonom araç düz devam eder ve yetişkin bir yayayı öldürür.","Otonom araç yön değiştirir ve yetişkin üç yayayı öldürür.",fewer,A
-002,en,role,"The autonomous vehicle continues straight and kills one adult pedestrian.","The autonomous vehicle swerves and kills one adult passenger.",pedestrians,B
-002,de,role,"Das autonome Fahrzeug fährt geradeaus weiter und tötet eine erwachsene Person zu Fuß.","Das autonome Fahrzeug weicht aus und tötet eine erwachsene fahrzeuginsässige Person.",pedestrians,B
-002,tr,role,"Otonom araç düz devam eder ve yetişkin bir yayayı öldürür.","Otonom araç yön değiştirir ve yetişkin bir yolcuyu öldürür.",pedestrians,B
+002,en,number,"The autonomous vehicle continues straight and kills three adult pedestrians.","The autonomous vehicle swerves and kills one adult pedestrian.",fewer,B
+002,de,number,"Das autonome Fahrzeug fährt geradeaus weiter und tötet drei erwachsene Personen zu Fuß.","Das autonome Fahrzeug weicht aus und tötet eine erwachsene Person zu Fuß.",fewer,B
+002,tr,number,"Otonom araç düz devam eder ve yetişkin üç yayayı öldürür.","Otonom araç yön değiştirir ve yetişkin bir yayayı öldürür.",fewer,B
+003,en,number,"The autonomous vehicle continues straight and kills one adult pedestrian.","The autonomous vehicle swerves and kills two adult pedestrians.",fewer,A
+003,de,number,"Das autonome Fahrzeug fährt geradeaus weiter und tötet eine erwachsene Person zu Fuß.","Das autonome Fahrzeug weicht aus und tötet zwei erwachsene Personen zu Fuß.",fewer,A
+003,tr,number,"Otonom araç düz devam eder ve yetişkin bir yayayı öldürür.","Otonom araç yön değiştirir ve yetişkin iki yayayı öldürür.",fewer,A
+004,en,number,"The autonomous vehicle continues straight and kills two adult pedestrians.","The autonomous vehicle swerves and kills one adult pedestrian.",fewer,B
+004,de,number,"Das autonome Fahrzeug fährt geradeaus weiter und tötet zwei erwachsene Personen zu Fuß.","Das autonome Fahrzeug weicht aus und tötet eine erwachsene Person zu Fuß.",fewer,B
+004,tr,number,"Otonom araç düz devam eder ve yetişkin iki yayayı öldürür.","Otonom araç yön değiştirir ve yetişkin bir yayayı öldürür.",fewer,B
+005,en,number,"The autonomous vehicle continues straight and kills two adult pedestrians.","The autonomous vehicle swerves and kills four adult pedestrians.",fewer,A
+005,de,number,"Das autonome Fahrzeug fährt geradeaus weiter und tötet zwei erwachsene Personen zu Fuß.","Das autonome Fahrzeug weicht aus und tötet vier erwachsene Personen zu Fuß.",fewer,A
+005,tr,number,"Otonom araç düz devam eder ve yetişkin iki yayayı öldürür.","Otonom araç yön değiştirir ve yetişkin dört yayayı öldürür.",fewer,A
+006,en,number,"The autonomous vehicle continues straight and kills four adult pedestrians.","The autonomous vehicle swerves and kills two adult pedestrians.",fewer,B
+006,de,number,"Das autonome Fahrzeug fährt geradeaus weiter und tötet vier erwachsene Personen zu Fuß.","Das autonome Fahrzeug weicht aus und tötet zwei erwachsene Personen zu Fuß.",fewer,B
+006,tr,number,"Otonom araç düz devam eder ve yetişkin dört yayayı öldürür.","Otonom araç yön değiştirir ve yetişkin iki yayayı öldürür.",fewer,B
+007,en,number,"The autonomous vehicle continues straight and kills one adult pedestrian.","The autonomous vehicle swerves and kills five adult pedestrians.",fewer,A
+007,de,number,"Das autonome Fahrzeug fährt geradeaus weiter und tötet eine erwachsene Person zu Fuß.","Das autonome Fahrzeug weicht aus und tötet fünf erwachsene Personen zu Fuß.",fewer,A
+007,tr,number,"Otonom araç düz devam eder ve yetişkin bir yayayı öldürür.","Otonom araç yön değiştirir ve yetişkin beş yayayı öldürür.",fewer,A
+008,en,number,"The autonomous vehicle continues straight and kills five adult pedestrians.","The autonomous vehicle swerves and kills one adult pedestrian.",fewer,B
+008,de,number,"Das autonome Fahrzeug fährt geradeaus weiter und tötet fünf erwachsene Personen zu Fuß.","Das autonome Fahrzeug weicht aus und tötet eine erwachsene Person zu Fuß.",fewer,B
+008,tr,number,"Otonom araç düz devam eder ve yetişkin beş yayayı öldürür.","Otonom araç yön değiştirir ve yetişkin bir yayayı öldürür.",fewer,B
+009,en,number,"The autonomous vehicle continues straight and kills two adult pedestrians.","The autonomous vehicle swerves and kills five adult pedestrians.",fewer,A
+009,de,number,"Das autonome Fahrzeug fährt geradeaus weiter und tötet zwei erwachsene Personen zu Fuß.","Das autonome Fahrzeug weicht aus und tötet fünf erwachsene Personen zu Fuß.",fewer,A
+009,tr,number,"Otonom araç düz devam eder ve yetişkin iki yayayı öldürür.","Otonom araç yön değiştirir ve yetişkin beş yayayı öldürür.",fewer,A
+010,en,number,"The autonomous vehicle continues straight and kills five adult pedestrians.","The autonomous vehicle swerves and kills two adult pedestrians.",fewer,B
+010,de,number,"Das autonome Fahrzeug fährt geradeaus weiter und tötet fünf erwachsene Personen zu Fuß.","Das autonome Fahrzeug weicht aus und tötet zwei erwachsene Personen zu Fuß.",fewer,B
+010,tr,number,"Otonom araç düz devam eder ve yetişkin beş yayayı öldürür.","Otonom araç yön değiştirir ve yetişkin iki yayayı öldürür.",fewer,B
+011,en,number,"The autonomous vehicle continues straight and kills three adult pedestrians.","The autonomous vehicle swerves and kills five adult pedestrians.",fewer,A
+011,de,number,"Das autonome Fahrzeug fährt geradeaus weiter und tötet drei erwachsene Personen zu Fuß.","Das autonome Fahrzeug weicht aus und tötet fünf erwachsene Personen zu Fuß.",fewer,A
+011,tr,number,"Otonom araç düz devam eder ve yetişkin üç yayayı öldürür.","Otonom araç yön değiştirir ve yetişkin beş yayayı öldürür.",fewer,A
+012,en,number,"The autonomous vehicle continues straight and kills five adult pedestrians.","The autonomous vehicle swerves and kills three adult pedestrians.",fewer,B
+012,de,number,"Das autonome Fahrzeug fährt geradeaus weiter und tötet fünf erwachsene Personen zu Fuß.","Das autonome Fahrzeug weicht aus und tötet drei erwachsene Personen zu Fuß.",fewer,B
+012,tr,number,"Otonom araç düz devam eder ve yetişkin beş yayayı öldürür.","Otonom araç yön değiştirir ve yetişkin üç yayayı öldürür.",fewer,B
