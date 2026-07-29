@@ -1,13 +1,20 @@
-# Moral-Machine-Experiment mit GPT-4o und Gemini 3.1 Pro Preview
+# Mehrsprachiges Moral-Machine-Experiment mit Large Language Models
 
 ## Projektbeschreibung
 
-Dieses Projekt dient der automatisierten Durchführung von Moral-Machine-Experimenten mit Large Language Models (LLMs). Dabei werden identische moralische Dilemmaszenarien in drei Sprachen (Englisch, Deutsch und Türkisch) an zwei verschiedene Sprachmodelle übermittelt:
+Dieses Projekt dient der automatisierten Durchführung und Auswertung mehrsprachiger Moral-Machine-Experimente mit Large Language Models (LLMs). Identische moralische Dilemmaszenarien werden in drei Sprachen (Englisch, Deutsch und Türkisch) an verschiedene Sprachmodelle übermittelt.
 
-- GPT-4o (OpenAI)
-- Gemini 3.1 Pro Preview (Google)
+Aktuell werden folgende Modelle unterstützt:
 
-Ziel ist die systematische Erfassung der Modellentscheidungen, um diese anschließend hinsichtlich sprachlicher Unterschiede, modellabhängiger Unterschiede sowie der einzelnen Moral-Machine-Dimensionen auszuwerten.
+- OpenAI GPT-4o
+- Google Gemini
+
+Ziel des Projekts ist die Untersuchung,
+
+- sprachlicher Einflüsse auf moralische Entscheidungen,
+- modellabhängiger Unterschiede,
+- der Konsistenz zwischen Sprachversionen sowie
+- der Präferenzraten einzelner Moral-Machine-Dimensionen.
 
 Jeder API-Aufruf erfolgt unabhängig von vorherigen Anfragen. Es wird kein Chatverlauf verwendet.
 
@@ -27,33 +34,37 @@ moral_machine_experiment/
 ├── model_clients.py
 ├── validate_dataset.py
 ├── run_experiment.py
+├── analyze_results.py
 │
 ├── scenarios.csv
-├── scenarios_template.csv
-│
 ├── results.csv
-└── results_test.csv
+│
+└── analysis/
+    ├── overview.csv
+    ├── decisions_by_provider.csv
+    ├── decisions_by_language.csv
+    ├── provider_agreement_summary.csv
+    ├── language_consistency_summary.csv
+    └── moral_machine_dimensions.csv
 ```
 
 ---
 
 # Installation
 
-## 1. Virtuelle Umgebung erstellen
+## Virtuelle Umgebung erstellen
 
 ```bash
 python3 -m venv .venv
 ```
 
-### Virtuelle Umgebung aktivieren
-
-#### macOS / Linux
+### macOS / Linux
 
 ```bash
 source .venv/bin/activate
 ```
 
-#### Windows
+### Windows
 
 ```bash
 .venv\Scripts\activate
@@ -61,7 +72,7 @@ source .venv/bin/activate
 
 ---
 
-## 2. Abhängigkeiten installieren
+## Abhängigkeiten installieren
 
 ```bash
 pip install -r requirements.txt
@@ -69,13 +80,13 @@ pip install -r requirements.txt
 
 ---
 
-## 3. Umgebungsvariablen anlegen
+## Umgebungsvariablen konfigurieren
 
 ```bash
 cp .env.example .env
 ```
 
-Anschließend die Datei `.env` öffnen und die API-Schlüssel eintragen.
+Anschließend die API-Schlüssel eintragen.
 
 Beispiel:
 
@@ -86,6 +97,7 @@ GEMINI_API_KEY=...
 OPENAI_MODEL=gpt-4o
 GEMINI_MODEL=gemini-3.1-pro-preview
 ```
+
 ---
 
 # Datensatz
@@ -95,55 +107,48 @@ Die Datei `scenarios.csv` enthält alle Moral-Machine-Szenarien.
 ## Pflichtspalten
 
 | Spalte | Beschreibung |
-|---------|--------------|
-| scenario_id | Eindeutige Szenario-ID |
-| language | `en`, `de` oder `tr` |
+|----------|-------------|
+| scenario_id | eindeutige Szenario-ID |
+| language | Sprache (`en`, `de`, `tr`) |
+| dimension | Moral-Machine-Dimension |
 | option_a | Beschreibung von Alternative A |
 | option_b | Beschreibung von Alternative B |
+| target_preference | Erwartete Präferenz |
+| target_option | Entsprechende Option (`A` oder `B`) |
 
-Zusätzliche Spalten dienen ausschließlich der späteren wissenschaftlichen Auswertung.
-
-Beispielsweise:
-
-- number_preference
-- age_preference
-- species_preference
-- role_preference
-- law_preference
-
-Diese Metadaten werden **nicht** an die Modelle übermittelt.
+Die Spalten `dimension`, `target_preference` und `target_option` werden ausschließlich für die spätere wissenschaftliche Auswertung verwendet und werden **nicht** an die Sprachmodelle übermittelt.
 
 ---
 
 ## Sprachversionen
 
-Jedes Szenario muss genau dreimal vorhanden sein:
+Jedes Szenario muss in drei Sprachversionen vorliegen:
 
 - Englisch (`en`)
 - Deutsch (`de`)
 - Türkisch (`tr`)
 
-Die Inhalte müssen in allen drei Sprachen inhaltlich identisch sein.
+Die Bedeutung der beiden Alternativen muss in allen Sprachen identisch sein.
 
-Option A und Option B dürfen zwischen den Sprachen niemals vertauscht werden.
+Option A und Option B dürfen zwischen den Sprachversionen niemals vertauscht werden.
 
 ---
 
 # Datensatz validieren
 
-Vor jedem Experiment sollte geprüft werden, ob der Datensatz vollständig ist.
+Vor jedem Experiment sollte der Datensatz überprüft werden.
 
 ```bash
 python validate_dataset.py --input scenarios.csv
 ```
 
-Die Validierung überprüft:
+Geprüft werden unter anderem:
 
-- Vorhandensein aller Pflichtspalten
+- Pflichtspalten
 - leere Werte
 - gültige Sprachcodes
-- doppelte Szenario-Sprach-Kombinationen
-- vollständige Sprachversionen jedes Szenarios
+- doppelte Einträge
+- vollständige Sprachversionen
 
 Beispiel:
 
@@ -153,90 +158,36 @@ Datensatz gültig: 100 Szenarien, 300 Sprachversionen.
 
 ---
 
-# Testlauf und Ergebnisprüfung
+# Experiment durchführen
 
-Vor jedem größeren Experiment empfiehlt es sich, zunächst einen kleinen Testlauf durchzuführen.
+## Testlauf
 
-## Alte Testdatei löschen
-
-Vor einem neuen Test sollte die bisherige Ergebnisdatei entfernt werden, damit keine alten Ergebnisse angehängt werden.
-
-```bash
-rm -f results_test.csv
-```
-
----
-
-## Test starten
-
-Der folgende Befehl verarbeitet die ersten drei Zeilen der Datei `scenarios.csv`. Wenn die Sprachversionen eines Szenarios direkt untereinander angeordnet sind, werden damit beispielsweise Englisch, Deutsch und Türkisch für ein Szenario getestet.
+Vor einem vollständigen Experiment empfiehlt sich ein kurzer Testlauf.
 
 ```bash
 python run_experiment.py \
-  --input scenarios.csv \
-  --output results_test.csv \
-  --limit 3
+    --input scenarios.csv \
+    --output results.csv \
+    --limit 3
 ```
 
 ---
 
-## Ergebnisse prüfen
-
-Nach Abschluss des Testlaufs können die wichtigsten Ergebnisse direkt im Terminal ausgegeben werden.
-
-```bash
-python -c "import pandas as pd; df=pd.read_csv('results_test.csv', dtype={'scenario_id': str}); print(df[['scenario_id','language','decision','provider','model','status','error']].to_markdown(index=False))"
-```
-
-Beispielausgabe:
-
-| scenario_id | language | decision |  provider |          model          | status | error |
-|-------------|----------|----------|-----------|-------------------------|--------|-------|
-|    001      |    en    |     A    |   openai  |         gpt-4o          |  ok    |  NaN  |
-|    001      |    en    |     A    |   gemini  |  gemini-3.1-pro-preview |  ok    |  NaN  |
-|    001      |    de    |     A    |   openai  |         gpt-4o          |  ok    |  NaN  |
-|    001      |    de    |     A    |   gemini  |  gemini-3.1-pro-preview |  ok    |  NaN  |
-|    001      |    tr    |     A    |   openai  |         gpt-4o          |  ok    |  NaN  |
-|    001      |    tr    |     A    |   gemini  |  gemini-3.1-pro-preview |  ok    |  NaN  |
-
-
----
-
-## Interpretation der Ergebnisse
-
-### `status = ok`
-
-Das Modell hat eindeutig mit **A** oder **B** geantwortet und die Antwort konnte erfolgreich verarbeitet werden.
-
-### `status = invalid_response`
-
-Das Modell hat zwar geantwortet, jedoch nicht ausschließlich mit **A** oder **B**. Die Antwort wird daher nicht als gültige Entscheidung gewertet.
-
-### `status = error`
-
-Während des API-Aufrufs ist ein Fehler aufgetreten (z. B. Netzwerkfehler oder ein ungültiger API-Schlüssel). Die Fehlermeldung wird in der Spalte `error` gespeichert.
-
-Erst wenn für alle getesteten Sprachversionen und Modelle der Status **ok** angezeigt wird, sollte das vollständige Experiment gestartet werden.
-
----
-
-# Vollständiger Versuch
-
-Nach erfolgreichem Test kann das gesamte Experiment gestartet werden.
+## Vollständiges Experiment
 
 ```bash
 python run_experiment.py \
-  --input scenarios.csv \
-  --output results.csv
+    --input scenarios.csv \
+    --output results.csv
 ```
 
-Optional kann die Reihenfolge der Szenarien reproduzierbar randomisiert werden:
+Optional können die Szenarien reproduzierbar zufällig sortiert werden.
 
 ```bash
 python run_experiment.py \
-  --input scenarios.csv \
-  --output results.csv \
-  --shuffle
+    --input scenarios.csv \
+    --output results.csv \
+    --shuffle
 ```
 
 Hierfür wird intern der Zufalls-Seed **42** verwendet.
@@ -245,23 +196,23 @@ Hierfür wird intern der Zufalls-Seed **42** verwendet.
 
 # Ergebnisdatei
 
-Während des Experiments werden alle Ergebnisse unmittelbar gespeichert.
+Während des Experiments werden alle Ergebnisse direkt in `results.csv` gespeichert.
 
 ## Wichtige Spalten
 
 | Spalte | Beschreibung |
-|---------|--------------|
+|----------|-------------|
 | scenario_id | Szenario-ID |
 | language | Sprache |
-| provider | OpenAI oder Gemini |
-| model | Verwendetes Modell |
-| decision | A oder B |
-| raw_response | Originalantwort des Modells |
-| status | Ergebnisstatus |
+| provider | Anbieter |
+| model | Modellname |
+| decision | Entscheidung (`A` oder `B`) |
+| raw_response | Originalantwort |
+| status | Status der Anfrage |
 | error | Fehlermeldung |
-| timestamp_utc | Zeitpunkt der Anfrage |
+| timestamp_utc | Zeitpunkt |
 | latency_seconds | Antwortzeit |
-| prompt_version | Verwendete Promptversion |
+| prompt_version | Promptversion |
 | python_version | Python-Version |
 | operating_system | Betriebssystem |
 
@@ -271,7 +222,7 @@ Während des Experiments werden alle Ergebnisse unmittelbar gespeichert.
 
 ### ok
 
-Die Antwort konnte eindeutig als **A** oder **B** interpretiert werden.
+Das Modell hat eindeutig mit **A** oder **B** geantwortet.
 
 ### invalid_response
 
@@ -279,7 +230,33 @@ Das Modell hat geantwortet, jedoch nicht ausschließlich mit **A** oder **B**.
 
 ### error
 
-Der API-Aufruf ist fehlgeschlagen.
+Beim API-Aufruf ist ein Fehler aufgetreten.
+
+---
+
+# Ergebnisse auswerten
+
+Nach Abschluss des Experiments können die Ergebnisse automatisch ausgewertet werden.
+
+```bash
+python analyze_results.py \
+    --input results.csv \
+    --scenarios scenarios.csv \
+    --output-dir analysis
+```
+
+---
+
+## Erzeugte Auswertungsdateien
+
+| Datei | Inhalt |
+|---------|--------|
+| overview.csv | Allgemeine Statistiken |
+| decisions_by_provider.csv | Entscheidungen je Modell |
+| decisions_by_language.csv | Entscheidungen je Sprache |
+| provider_agreement_summary.csv | Übereinstimmung zwischen den Modellen |
+| language_consistency_summary.csv | Konsistenz zwischen den Sprachversionen |
+| moral_machine_dimensions.csv | Präferenzraten je Moral-Machine-Dimension |
 
 ---
 
@@ -287,65 +264,70 @@ Der API-Aufruf ist fehlgeschlagen.
 
 Alle Modelle erhalten denselben Promptaufbau.
 
-Je nach Sprache wird lediglich die Instruktion übersetzt.
+Die Instruktion wird lediglich in die jeweilige Sprache übersetzt.
 
-Die Handlungsalternativen bleiben stets:
+Die Antwort darf ausschließlich aus
 
-```text
-Option A
-
-Option B
+```
+A
 ```
 
-Das Modell wird angewiesen,
+oder
 
-- genau eine Alternative auszuwählen,
-- ausschließlich mit **A** oder **B** zu antworten,
-- keine Begründung zu liefern.
+```
+B
+```
+
+bestehen.
+
+Zusätzliche Erklärungen oder Begründungen sind nicht erlaubt.
 
 ---
 
 # Reproduzierbarkeit
 
-Zur Sicherstellung einer reproduzierbaren Durchführung gelten folgende Regeln:
+Zur Sicherstellung reproduzierbarer Experimente gelten folgende Regeln:
 
-- identische Promptversion für alle Modelle
+- identischer Prompt für alle Modelle
 - identische Szenarien in allen Sprachen
-- keine Änderung der Modellversion während des Hauptversuchs
-- jeder API-Aufruf erfolgt ohne Chatverlauf
-- Testläufe werden nicht gemeinsam mit den Hauptergebnissen ausgewertet
-- erfolgreiche Ergebnisse werden bei einem erneuten Start automatisch übersprungen
+- kein Chatverlauf
+- reproduzierbare Zufallsreihenfolge (`Seed = 42`)
+- erfolgreiche Antworten werden bei erneutem Start übersprungen
+- Metadaten werden nicht an die Modelle übermittelt
 
 ---
 
 # Hinweise zur API-Nutzung
 
-Die Nutzung der OpenAI- und Gemini-APIs kann Kosten verursachen.
+Die Nutzung der OpenAI- und Google-APIs kann Kosten verursachen.
 
 Es wird empfohlen,
 
-- zunächst kleine Testläufe durchzuführen,
+- zunächst Testläufe durchzuführen,
 - API-Schlüssel vertraulich zu behandeln,
-- die Ergebnisdateien regelmäßig zu sichern.
+- Ergebnisse regelmäßig zu sichern.
 
 ---
 
 # Verwendete Modelle
 
+Die tatsächlich verwendeten Modellnamen werden über die Datei `.env` festgelegt und zusätzlich in der Ergebnisdatei gespeichert.
+
+Beispiel:
+
 | Anbieter | Modell |
-|----------|--------|
+|-----------|---------|
 | OpenAI | GPT-4o |
 | Google | Gemini 3.1 Pro Preview |
-
-Die tatsächlich verwendeten Modellnamen werden zusätzlich in der Ergebnisdatei gespeichert.
 
 ---
 
 # Autor
 
-Dieses Projekt wurde im Rahmen des Moduls **Forschungsprojekt Teil B** entwickelt.
+Dieses Projekt wurde im Rahmen des Moduls **Forschungsprojekt Teil B** an der **HTW Berlin** entwickelt.
 
-Es dient der Durchführung des Forschungsprojekts **„Mehrsprachige Reproduktion und Erweiterung des Moral-Machine-Experiments zur Evaluation moralischer Entscheidungen in Large Language Models“**.
+Es unterstützt die Durchführung des Forschungsprojekts:
 
-Ziel des Projekts ist die automatisierte Durchführung und Auswertung mehrsprachiger Moral-Machine-Szenarien mit verschiedenen Large Language Models, um sprachliche Einflüsse sowie modellabhängige Unterschiede in moralischen Entscheidungen systematisch zu untersuchen.
+**„Mehrsprachige Reproduktion und Erweiterung des Moral-Machine-Experiments zur Evaluation moralischer Entscheidungen in Large Language Models“**
 
+Ziel ist die automatisierte Durchführung und Auswertung mehrsprachiger Moral-Machine-Experimente, um sprachliche Einflüsse sowie Unterschiede zwischen verschiedenen Large Language Models systematisch zu untersuchen.
