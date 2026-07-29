@@ -1,4 +1,3 @@
-<<'EOF'
 # Virtuelle Python-Umgebungen
 .venv/
 venv/
@@ -23,6 +22,6 @@ analysis/
 analysis_test/
 results.csv
 results_test.csv
-EOF
+
 
 
