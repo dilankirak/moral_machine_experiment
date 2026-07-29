@@ -1,8 +1,5 @@
-from __future__ import annotations
-
 import argparse
 import platform
-import random
 import sys
 import time
 from datetime import datetime, timezone
@@ -15,38 +12,46 @@ from prompting import PROMPT_VERSION, build_prompt
 from validate_dataset import validate
 
 
-def load_existing(path: Path) -> pd.DataFrame:
-    if path.exists():
-        return pd.read_csv(path)
-    return pd.DataFrame()
+def load_existing(path):
+    return pd.read_csv(path) if path.exists() else pd.DataFrame()
 
 
-def completed_keys(existing: pd.DataFrame) -> set[tuple[str, str, str]]:
+def completed_keys(existing):
     required = {"scenario_id", "language", "provider", "status"}
+
     if existing.empty or not required.issubset(existing.columns):
         return set()
 
-    successful = existing[existing["status"] == "ok"]
     return {
         (str(row.scenario_id), str(row.language), str(row.provider))
-        for row in successful.itertuples()
+        for row in existing[existing["status"] == "ok"].itertuples()
     }
 
 
-def append_row(path: Path, row: dict) -> None:
-    frame = pd.DataFrame([row])
-    frame.to_csv(path, mode="a", header=not path.exists(), index=False)
+def append_row(path, row):
+    pd.DataFrame([row]).to_csv(
+        path,
+        mode="a",
+        header=not path.exists(),
+        index=False,
+    )
 
 
-def main(input_path: Path, output_path: Path, limit: int | None, shuffle: bool) -> None:
+def main(input_path, output_path, limit=None, shuffle=False):
     validate(input_path)
-    scenarios = pd.read_csv(input_path, dtype={"scenario_id": str})
 
-    # A fixed seed makes the optional randomized order reproducible.
+    scenarios = pd.read_csv(
+        input_path,
+        dtype={"scenario_id": str},
+    )
+
     if shuffle:
-        scenarios = scenarios.sample(frac=1, random_state=42).reset_index(drop=True)
+        scenarios = (
+            scenarios.sample(frac=1, random_state=42)
+            .reset_index(drop=True)
+        )
 
-    if limit is not None:
+    if limit:
         scenarios = scenarios.head(limit)
 
     models = {
@@ -54,30 +59,45 @@ def main(input_path: Path, output_path: Path, limit: int | None, shuffle: bool) 
         "gemini": GeminiModel(),
     }
 
-    existing = load_existing(output_path)
-    done = completed_keys(existing)
+    done = completed_keys(load_existing(output_path))
 
     total = len(scenarios) * len(models)
     current = 0
 
     for row in scenarios.itertuples(index=False):
-        prompt = build_prompt(row.language, row.option_a, row.option_b)
+        prompt = build_prompt(
+            row.language,
+            row.option_a,
+            row.option_b,
+        )
 
-        for provider, model_client in models.items():
+        for provider, model in models.items():
             current += 1
-            key = (str(row.scenario_id), str(row.language), provider)
+
+            key = (
+                str(row.scenario_id),
+                str(row.language),
+                provider,
+            )
+
             if key in done:
-                print(f"[{current}/{total}] Übersprungen: {key}")
+                print(f"[{current}/{total}] Skip {key}")
                 continue
 
-            print(f"[{current}/{total}] {provider}: Szenario {row.scenario_id} ({row.language})")
-            result = model_client.run(prompt)
+            print(
+                f"[{current}/{total}] "
+                f"{provider} | "
+                f"{row.scenario_id} ({row.language})"
+            )
+
+            result = model.run(prompt)
 
             record = row._asdict()
+
             record.update(
                 {
                     "provider": provider,
-                    "model": model_client.model,
+                    "model": model.model,
                     "decision": result.decision,
                     "raw_response": result.raw_response,
                     "status": result.status,
@@ -89,23 +109,44 @@ def main(input_path: Path, output_path: Path, limit: int | None, shuffle: bool) 
                     "operating_system": platform.platform(),
                 }
             )
+
             append_row(output_path, record)
 
-            # Kurze Pause, um unnötige Rate-Limit-Probleme zu reduzieren.
             time.sleep(0.5)
 
-    print(f"Fertig. Ergebnisse: {output_path}")
+    print(f"\nDone. Results saved to {output_path}")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--input", required=True, type=Path)
-    parser.add_argument("--output", required=True, type=Path)
-    parser.add_argument("--limit", type=int, default=None)
+
+    parser.add_argument(
+        "--input",
+        required=True,
+        type=Path,
+    )
+
+    parser.add_argument(
+        "--output",
+        required=True,
+        type=Path,
+    )
+
+    parser.add_argument(
+        "--limit",
+        type=int,
+    )
+
     parser.add_argument(
         "--shuffle",
         action="store_true",
-        help="Reihenfolge reproduzierbar mit Seed 42 randomisieren.",
     )
+
     args = parser.parse_args()
-    main(args.input, args.output, args.limit, args.shuffle)
+
+    main(
+        args.input,
+        args.output,
+        args.limit,
+        args.shuffle,
+    )

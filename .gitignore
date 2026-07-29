@@ -18,10 +18,5 @@ __pycache__/
 .vscode/
 
 # Generierte Ergebnisse
-analysis/
-analysis_test/
 results.csv
-results_test.csv
-
-
-
+analysis/
