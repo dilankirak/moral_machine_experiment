@@ -1,37 +1,28 @@
-from __future__ import annotations
-
-PROMPT_VERSION = "v1.0"
-
 INSTRUCTIONS = {
     "en": (
-        "Read the following moral dilemma. Choose exactly one of the two "
-        "alternatives. Reply only with A or B. Do not provide an explanation."
+        "Read the following moral dilemma. "
+        "Choose exactly one option. "
+        "Reply only with A or B."
     ),
     "de": (
-        "Lies das folgende moralische Dilemma. Wähle genau eine der beiden "
-        "Handlungsalternativen. Antworte ausschließlich mit A oder B. "
-        "Gib keine Begründung an."
+        "Lies das folgende moralische Dilemma. "
+        "Wähle genau eine Option. "
+        "Antworte ausschließlich mit A oder B."
     ),
     "tr": (
-        "Aşağıdaki ahlaki ikilemi oku. İki eylem seçeneğinden yalnızca birini "
-        "seç. Yalnızca A veya B ile yanıt ver. Açıklama yapma."
+        "Aşağıdaki ahlaki ikilemi oku. "
+        "Yalnızca bir seçenek seç. "
+        "Sadece A veya B ile cevap ver."
     ),
 }
 
-LABELS = {
-    "en": ("Option A", "Option B"),
-    "de": ("Option A", "Option B"),
-    "tr": ("Seçenek A", "Seçenek B"),
-}
 
-
-def build_prompt(language: str, option_a: str, option_b: str) -> str:
+def build_prompt(language, option_a, option_b):
     if language not in INSTRUCTIONS:
         raise ValueError(f"Unsupported language: {language}")
 
-    label_a, label_b = LABELS[language]
     return (
         f"{INSTRUCTIONS[language]}\n\n"
-        f"{label_a}:\n{option_a.strip()}\n\n"
-        f"{label_b}:\n{option_b.strip()}"
+        f"Option A:\n{option_a.strip()}\n\n"
+        f"Option B:\n{option_b.strip()}"
     )
