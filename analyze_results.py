@@ -1,255 +1,229 @@
-from pathlib import Path
 import argparse
+from pathlib import Path
 
 import pandas as pd
 
 
-DIMENSIONS = {
-    "number_preference": "Anzahl",
-    "age_preference": "Alter",
-    "species_preference": "Mensch oder Tier",
-    "role_preference": "Passagier oder Fußgänger",
-    "law_preference": "Regelkonformität",
+RESULT_COLUMNS = {
+    "scenario_id",
+    "language",
+    "provider",
+    "model",
+    "decision",
+    "status",
+}
+
+SCENARIO_COLUMNS = {
+    "scenario_id",
+    "language",
+    "dimension",
+    "target_preference",
+    "target_option",
 }
 
 
-def load_csv(file_path: str) -> pd.DataFrame:
-    path = Path(file_path)
+def load_csv(path):
+    path = Path(path)
 
     if not path.exists():
-        raise FileNotFoundError(
-            f"Die Datei wurde nicht gefunden: {file_path}"
-        )
+        raise FileNotFoundError(f"Datei nicht gefunden: {path}")
 
-    return pd.read_csv(
-        path,
-        dtype={"scenario_id": str},
-    )
+    return pd.read_csv(path, dtype={"scenario_id": str})
 
 
-def prepare_results(df: pd.DataFrame) -> pd.DataFrame:
-    required_columns = [
-        "scenario_id",
-        "language",
-        "provider",
-        "model",
-        "decision",
-        "status",
-    ]
+def check_columns(df, required, file_name):
+    missing = required - set(df.columns)
 
-    missing_columns = [
-        column
-        for column in required_columns
-        if column not in df.columns
-    ]
-
-    if missing_columns:
+    if missing:
         raise ValueError(
-            "In der Ergebnisdatei fehlen folgende Spalten: "
-            + ", ".join(missing_columns)
+            f"In {file_name} fehlen folgende Spalten: "
+            + ", ".join(sorted(missing))
         )
 
-    df["scenario_id"] = (
-        df["scenario_id"]
-        .astype(str)
-        .str.strip()
-        .str.zfill(3)
-    )
 
-    df["language"] = (
-        df["language"]
-        .astype(str)
-        .str.strip()
-        .str.lower()
-    )
-
-    df["provider"] = (
-        df["provider"]
-        .astype(str)
-        .str.strip()
-        .str.lower()
-    )
-
-    df["status"] = (
-        df["status"]
-        .astype(str)
-        .str.strip()
-        .str.lower()
-    )
-
-    df["decision"] = (
-        df["decision"]
-        .astype("string")
-        .str.strip()
-        .str.upper()
-    )
-
+def normalize_ids(df):
+    df = df.copy()
+    df["scenario_id"] = df["scenario_id"].astype(str).str.strip().str.zfill(3)
+    df["language"] = df["language"].astype(str).str.strip().str.lower()
     return df
 
 
-def prepare_scenarios(df: pd.DataFrame) -> pd.DataFrame:
-    required_columns = [
+def prepare_results(df):
+    check_columns(df, RESULT_COLUMNS, "results.csv")
+    df = normalize_ids(df)
+
+    df["provider"] = df["provider"].astype(str).str.strip().str.lower()
+    df["status"] = df["status"].astype(str).str.strip().str.lower()
+    df["decision"] = df["decision"].astype("string").str.strip().str.upper()
+
+    if "timestamp_utc" in df.columns:
+        df["timestamp_utc"] = pd.to_datetime(
+            df["timestamp_utc"],
+            errors="coerce",
+            utc=True,
+        )
+        df = df.sort_values("timestamp_utc", na_position="first")
+
+    return df.drop_duplicates(
+        subset=["scenario_id", "language", "provider"],
+        keep="last",
+    )
+
+
+def prepare_scenarios(df):
+    check_columns(df, SCENARIO_COLUMNS, "scenarios.csv")
+    df = normalize_ids(df)
+
+    df["dimension"] = df["dimension"].astype(str).str.strip()
+    df["target_preference"] = (
+        df["target_preference"].astype(str).str.strip()
+    )
+    df["target_option"] = (
+        df["target_option"].astype("string").str.strip().str.upper()
+    )
+
+    if not df["target_option"].isin(["A", "B"]).all():
+        raise ValueError("target_option darf nur A oder B enthalten.")
+
+    columns = [
         "scenario_id",
         "language",
+        "dimension",
+        "target_preference",
+        "target_option",
     ]
 
-    missing_columns = [
-        column
-        for column in required_columns
-        if column not in df.columns
-    ]
-
-    if missing_columns:
-        raise ValueError(
-            "In der Szenariodatei fehlen folgende Spalten: "
-            + ", ".join(missing_columns)
-        )
-
-    df["scenario_id"] = (
-        df["scenario_id"]
-        .astype(str)
-        .str.strip()
-        .str.zfill(3)
+    return df[columns].drop_duplicates(
+        subset=["scenario_id", "language"]
     )
 
-    df["language"] = (
-        df["language"]
-        .astype(str)
-        .str.strip()
-        .str.lower()
+
+def save_csv(df, path):
+    df.to_csv(path, index=False, encoding="utf-8")
+    print(f"Gespeichert: {path}")
+
+
+def create_overview(df, valid):
+    values = {
+        "total_rows": len(df),
+        "successful_rows": len(valid),
+        "invalid_responses": (df["status"] == "invalid_response").sum(),
+        "api_errors": (df["status"] == "error").sum(),
+        "unique_scenarios": df["scenario_id"].nunique(),
+        "languages": df["language"].nunique(),
+        "providers": df["provider"].nunique(),
+        "models": df["model"].nunique(),
+    }
+
+    return pd.DataFrame(
+        {
+            "metric": values.keys(),
+            "value": values.values(),
+        }
     )
 
-    return df
 
+def create_decision_summary(df, group):
+    columns = [group, "decision", "count", "percentage"]
 
-def save_csv(dataframe: pd.DataFrame, file_path: Path) -> None:
-    dataframe.to_csv(
-        file_path,
-        index=False,
-        encoding="utf-8",
-    )
+    if df.empty:
+        return pd.DataFrame(columns=columns)
 
-    print(f"Gespeichert: {file_path}")
-
-
-def create_decision_summary(
-    df: pd.DataFrame,
-    group_column: str,
-) -> pd.DataFrame:
     summary = (
-        df.groupby([group_column, "decision"])
+        df.groupby([group, "decision"])
         .size()
         .reset_index(name="count")
     )
 
-    totals = (
-        summary.groupby(group_column)["count"]
-        .transform("sum")
-    )
-
-    summary["percentage"] = (
-        summary["count"] / totals * 100
-    ).round(2)
+    totals = summary.groupby(group)["count"].transform("sum")
+    summary["percentage"] = (summary["count"] / totals * 100).round(2)
 
     return summary
 
 
-def create_provider_agreement(
-    df: pd.DataFrame,
-) -> pd.DataFrame:
-    agreement = df.pivot_table(
+def create_provider_agreement(df):
+    columns = [
+        "language",
+        "compared_cases",
+        "agreements",
+        "agreement_rate",
+    ]
+
+    comparison = df.pivot_table(
         index=["scenario_id", "language"],
         columns="provider",
         values="decision",
         aggfunc="first",
     ).reset_index()
 
-    if (
-        "openai" not in agreement.columns
-        or "gemini" not in agreement.columns
-    ):
-        return pd.DataFrame()
+    if not {"openai", "gemini"}.issubset(comparison.columns):
+        return pd.DataFrame(columns=columns)
 
-    agreement = agreement.dropna(
-        subset=["openai", "gemini"]
-    ).copy()
+    comparison = comparison.dropna(subset=["openai", "gemini"])
 
-    agreement["agreement"] = (
-        agreement["openai"] == agreement["gemini"]
-    )
+    if comparison.empty:
+        return pd.DataFrame(columns=columns)
+
+    comparison["agreement"] = comparison["openai"] == comparison["gemini"]
 
     summary = (
-        agreement.groupby("language")
-        .agg(
-            compared_cases=("agreement", "size"),
-            agreements=("agreement", "sum"),
-        )
+        comparison.groupby("language")["agreement"]
+        .agg(compared_cases="size", agreements="sum")
         .reset_index()
     )
 
     summary["agreement_rate"] = (
-        summary["agreements"]
-        / summary["compared_cases"]
-        * 100
+        summary["agreements"] / summary["compared_cases"] * 100
     ).round(2)
 
     overall = pd.DataFrame(
-        {
-            "language": ["overall"],
-            "compared_cases": [len(agreement)],
-            "agreements": [
-                int(agreement["agreement"].sum())
-            ],
-            "agreement_rate": [
-                round(
-                    agreement["agreement"].mean() * 100,
+        [
+            {
+                "language": "overall",
+                "compared_cases": len(comparison),
+                "agreements": int(comparison["agreement"].sum()),
+                "agreement_rate": round(
+                    comparison["agreement"].mean() * 100,
                     2,
-                )
-                if len(agreement) > 0
-                else 0.0
-            ],
-        }
+                ),
+            }
+        ]
     )
 
-    return pd.concat(
-        [summary, overall],
-        ignore_index=True,
-    )
+    return pd.concat([summary, overall], ignore_index=True)
 
 
-def create_language_consistency(
-    df: pd.DataFrame,
-) -> pd.DataFrame:
-    consistency = df.pivot_table(
+def create_language_consistency(df):
+    columns = [
+        "provider",
+        "complete_scenarios",
+        "consistent_scenarios",
+        "consistency_rate",
+    ]
+    languages = ["en", "de", "tr"]
+
+    comparison = df.pivot_table(
         index=["scenario_id", "provider"],
         columns="language",
         values="decision",
         aggfunc="first",
     ).reset_index()
 
-    required_languages = ["en", "de", "tr"]
+    if not set(languages).issubset(comparison.columns):
+        return pd.DataFrame(columns=columns)
 
-    if not all(
-        language in consistency.columns
-        for language in required_languages
-    ):
-        return pd.DataFrame()
+    comparison = comparison.dropna(subset=languages)
 
-    consistency = consistency.dropna(
-        subset=required_languages
-    ).copy()
+    if comparison.empty:
+        return pd.DataFrame(columns=columns)
 
-    consistency["consistent"] = (
-        consistency[required_languages]
-        .nunique(axis=1)
-        == 1
-    )
+    comparison["consistent"] = comparison[languages].nunique(axis=1) == 1
 
     summary = (
-        consistency.groupby("provider")
+        comparison.groupby("provider")["consistent"]
         .agg(
-            complete_scenarios=("consistent", "size"),
-            consistent_scenarios=("consistent", "sum"),
+            complete_scenarios="size",
+            consistent_scenarios="sum",
         )
         .reset_index()
     )
@@ -263,341 +237,147 @@ def create_language_consistency(
     return summary
 
 
-def create_dimension_summary(
-    df: pd.DataFrame,
-) -> pd.DataFrame:
-    results = []
+def summarize_preferences(df, groups):
+    summary = (
+        df.groupby(groups)["preference_followed"]
+        .agg(evaluated_cases="size", preference_followed="sum")
+        .reset_index()
+    )
 
-    for column, dimension_name in DIMENSIONS.items():
-        if column not in df.columns:
-            print(
-                f"Hinweis: Die Spalte '{column}' "
-                "wurde nicht gefunden."
-            )
-            continue
+    summary["preference_rate"] = (
+        summary["preference_followed"]
+        / summary["evaluated_cases"]
+        * 100
+    ).round(2)
 
-        dimension_data = df[
-            df[column].notna()
-        ].copy()
+    return summary
 
-        dimension_data[column] = (
-            dimension_data[column]
-            .astype(str)
-            .str.strip()
-            .str.upper()
-        )
 
-        dimension_data = dimension_data[
-            dimension_data[column].isin(["A", "B"])
-        ].copy()
+def create_dimension_summary(df):
+    columns = [
+        "dimension",
+        "target_preference",
+        "provider",
+        "language",
+        "evaluated_cases",
+        "preference_followed",
+        "preference_rate",
+    ]
 
-        if dimension_data.empty:
-            print(
-                f"Hinweis: Für '{column}' wurden "
-                "keine A/B-Werte gefunden."
-            )
-            continue
+    data = df.dropna(
+        subset=["dimension", "target_preference", "target_option"]
+    ).copy()
 
-        dimension_data["preference_followed"] = (
-            dimension_data["decision"]
-            == dimension_data[column]
-        )
+    if data.empty:
+        return pd.DataFrame(columns=columns)
 
-        summary = (
-            dimension_data.groupby(
-                ["provider", "language"]
-            )
-            .agg(
-                evaluated_cases=(
-                    "preference_followed",
-                    "size",
-                ),
-                preference_followed=(
-                    "preference_followed",
-                    "sum",
-                ),
-            )
-            .reset_index()
-        )
+    data["preference_followed"] = (
+        data["decision"] == data["target_option"]
+    )
 
-        summary["preference_rate"] = (
-            summary["preference_followed"]
-            / summary["evaluated_cases"]
-            * 100
-        ).round(2)
+    summary = summarize_preferences(
+        data,
+        ["dimension", "target_preference", "provider", "language"],
+    )
 
-        summary.insert(
-            0,
-            "dimension",
-            dimension_name,
-        )
+    overall = summarize_preferences(
+        data,
+        ["dimension", "target_preference", "provider"],
+    )
+    overall["language"] = "overall"
+    overall = overall[columns]
 
-        results.append(summary)
-
-        overall = (
-            dimension_data.groupby("provider")
-            .agg(
-                evaluated_cases=(
-                    "preference_followed",
-                    "size",
-                ),
-                preference_followed=(
-                    "preference_followed",
-                    "sum",
-                ),
-            )
-            .reset_index()
-        )
-
-        overall["language"] = "overall"
-
-        overall["preference_rate"] = (
-            overall["preference_followed"]
-            / overall["evaluated_cases"]
-            * 100
-        ).round(2)
-
-        overall.insert(
-            0,
-            "dimension",
-            dimension_name,
-        )
-
-        overall = overall[
-            [
-                "dimension",
-                "provider",
-                "language",
-                "evaluated_cases",
-                "preference_followed",
-                "preference_rate",
-            ]
-        ]
-
-        results.append(overall)
-
-    if not results:
-        return pd.DataFrame(
-            columns=[
-                "dimension",
-                "provider",
-                "language",
-                "evaluated_cases",
-                "preference_followed",
-                "preference_rate",
-            ]
-        )
-
-    return pd.concat(
-        results,
-        ignore_index=True,
+    return (
+        pd.concat([summary, overall], ignore_index=True)
+        .sort_values(["dimension", "provider", "language"])
+        .reset_index(drop=True)
     )
 
 
-def main() -> None:
+def print_table(title, df, empty_message):
+    print(f"\n=== {title} ===")
+
+    if df.empty:
+        print(empty_message)
+    else:
+        print(df.to_markdown(index=False))
+
+
+def main():
     parser = argparse.ArgumentParser(
-        description=(
-            "Auswertung des mehrsprachigen "
-            "Moral-Machine-Experiments."
-        )
+        description="Auswertung des mehrsprachigen Moral-Machine-Experiments"
     )
-
-    parser.add_argument(
-        "--input",
-        default="results.csv",
-        help="Pfad zur Ergebnisdatei",
-    )
-
-    parser.add_argument(
-        "--scenarios",
-        default="scenarios.csv",
-        help="Pfad zur Szenariodatei",
-    )
-
-    parser.add_argument(
-        "--output-dir",
-        default="analysis",
-        help="Ordner für die Auswertungsdateien",
-    )
-
+    parser.add_argument("--input", default="results.csv")
+    parser.add_argument("--scenarios", default="scenarios.csv")
+    parser.add_argument("--output-dir", default="analysis")
     args = parser.parse_args()
 
     output_dir = Path(args.output_dir)
-    output_dir.mkdir(
-        parents=True,
-        exist_ok=True,
-    )
+    output_dir.mkdir(parents=True, exist_ok=True)
 
-    results = load_csv(args.input)
-    scenarios = load_csv(args.scenarios)
+    results = prepare_results(load_csv(args.input))
+    scenarios = prepare_scenarios(load_csv(args.scenarios))
 
-    results = prepare_results(results)
-    scenarios = prepare_scenarios(scenarios)
-
-    dimension_columns = [
-        column
-        for column in DIMENSIONS
-        if column in scenarios.columns
-    ]
-
-    scenario_columns = [
-        "scenario_id",
-        "language",
-    ] + dimension_columns
-
-    scenarios = scenarios[
-        scenario_columns
-    ].drop_duplicates(
-        subset=["scenario_id", "language"]
+    metadata = ["dimension", "target_preference", "target_option"]
+    results = results.drop(
+        columns=[column for column in metadata if column in results.columns]
     )
 
     df = results.merge(
         scenarios,
         on=["scenario_id", "language"],
         how="left",
+        validate="many_to_one",
     )
 
-    df_ok = df[
+    valid = df[
         (df["status"] == "ok")
-        & (df["decision"].isin(["A", "B"]))
+        & df["decision"].isin(["A", "B"])
     ].copy()
 
-    overview = pd.DataFrame(
-        {
-            "metric": [
-                "total_rows",
-                "successful_rows",
-                "invalid_responses",
-                "api_errors",
-                "unique_scenarios",
-                "languages",
-                "providers",
-                "models",
-            ],
-            "value": [
-                len(df),
-                len(df_ok),
-                int(
-                    (
-                        df["status"]
-                        == "invalid_response"
-                    ).sum()
-                ),
-                int(
-                    (
-                        df["status"]
-                        == "error"
-                    ).sum()
-                ),
-                df["scenario_id"].nunique(),
-                df["language"].nunique(),
-                df["provider"].nunique(),
-                df["model"].nunique(),
-            ],
-        }
+    outputs = {
+        "overview.csv": create_overview(df, valid),
+        "decisions_by_provider.csv": create_decision_summary(
+            valid,
+            "provider",
+        ),
+        "decisions_by_language.csv": create_decision_summary(
+            valid,
+            "language",
+        ),
+        "provider_agreement_summary.csv": create_provider_agreement(valid),
+        "language_consistency_summary.csv": create_language_consistency(valid),
+        "moral_machine_dimensions.csv": create_dimension_summary(valid),
+    }
+
+    for file_name, data in outputs.items():
+        save_csv(data, output_dir / file_name)
+
+    print_table(
+        "Überblick",
+        outputs["overview.csv"],
+        "Keine Ergebnisse vorhanden.",
     )
 
-    decisions_by_provider = create_decision_summary(
-        df_ok,
-        "provider",
+    print_table(
+        "Übereinstimmung zwischen den Modellen",
+        outputs["provider_agreement_summary.csv"],
+        "Keine vergleichbaren Modellentscheidungen vorhanden.",
     )
 
-    decisions_by_language = create_decision_summary(
-        df_ok,
-        "language",
+    print_table(
+        "Sprachliche Konsistenz",
+        outputs["language_consistency_summary.csv"],
+        "Keine vollständigen Sprachversionen vorhanden.",
     )
 
-    agreement_summary = create_provider_agreement(
-        df_ok
+    print_table(
+        "Moral-Machine-Dimensionen",
+        outputs["moral_machine_dimensions.csv"],
+        "Keine auswertbaren Dimensionen vorhanden.",
     )
 
-    consistency_summary = create_language_consistency(
-        df_ok
-    )
-
-    dimension_summary = create_dimension_summary(
-        df_ok
-    )
-
-    save_csv(
-        overview,
-        output_dir / "overview.csv",
-    )
-
-    save_csv(
-        decisions_by_provider,
-        output_dir / "decisions_by_provider.csv",
-    )
-
-    save_csv(
-        decisions_by_language,
-        output_dir / "decisions_by_language.csv",
-    )
-
-    if not agreement_summary.empty:
-        save_csv(
-            agreement_summary,
-            output_dir
-            / "provider_agreement_summary.csv",
-        )
-
-    if not consistency_summary.empty:
-        save_csv(
-            consistency_summary,
-            output_dir
-            / "language_consistency_summary.csv",
-        )
-
-    save_csv(
-        dimension_summary,
-        output_dir
-        / "moral_machine_dimensions.csv",
-    )
-
-    print("\n=== Überblick ===")
-    print(overview.to_markdown(index=False))
-
-    if not agreement_summary.empty:
-        print(
-            "\n=== Übereinstimmung "
-            "zwischen den Modellen ==="
-        )
-        print(
-            agreement_summary.to_markdown(
-                index=False
-            )
-        )
-
-    if not consistency_summary.empty:
-        print(
-            "\n=== Sprachliche Konsistenz ==="
-        )
-        print(
-            consistency_summary.to_markdown(
-                index=False
-            )
-        )
-
-    if not dimension_summary.empty:
-        print(
-            "\n=== Moral-Machine-Dimensionen ==="
-        )
-        print(
-            dimension_summary.to_markdown(
-                index=False
-            )
-        )
-    else:
-        print(
-            "\nKeine Moral-Machine-Dimensionen "
-            "konnten ausgewertet werden."
-        )
-
-    print(
-        "\nAuswertung abgeschlossen. "
-        f"Ergebnisse befinden sich im Ordner: "
-        f"{output_dir}"
-    )
+    print(f"\nAuswertung abgeschlossen. Ergebnisse: {output_dir}")
 
 
 if __name__ == "__main__":
