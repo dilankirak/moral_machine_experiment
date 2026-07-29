@@ -1,70 +1,138 @@
-from __future__ import annotations
-
-import argparse
+import csv
+import sys
+from collections import defaultdict
 from pathlib import Path
 
-import pandas as pd
 
-REQUIRED_COLUMNS = {"scenario_id", "language", "option_a", "option_b"}
-EXPECTED_LANGUAGES = {"en", "de", "tr"}
+REQUIRED_COLUMNS = [
+    "scenario_id",
+    "language",
+    "dimension",
+    "option_a",
+    "option_b",
+    "target_preference",
+    "target_option",
+]
+
+VALID_LANGUAGES = {"en", "de", "tr"}
+
+VALID_PREFERENCES = {
+    "number": {"fewer", "more"},
+    "age": {"younger", "older"},
+    "species": {"humans", "animals"},
+    "role": {"pedestrians", "passengers"},
+    "law": {"lawful", "unlawful"},
+}
 
 
-def validate(path: Path) -> None:
-    # scenario_id wird als Text eingelesen, damit z. B. "001" erhalten bleibt.
-    df = pd.read_csv(path, dtype={"scenario_id": str})
+def validate_dataset(file_path="scenarios.csv"):
+    path = Path(file_path)
 
-    missing = REQUIRED_COLUMNS - set(df.columns)
-    if missing:
-        raise ValueError(f"Fehlende Pflichtspalten: {sorted(missing)}")
+    if not path.exists():
+        print(f"Datei nicht gefunden: {path}")
+        return False
 
-    if df[list(REQUIRED_COLUMNS)].isna().any().any():
-        raise ValueError("Mindestens eine Pflichtspalte enthält leere Werte.")
+    with path.open(encoding="utf-8-sig", newline="") as file:
+        reader = csv.DictReader(file)
+        rows = list(reader)
 
-    unknown = set(df["language"].astype(str)) - EXPECTED_LANGUAGES
-    if unknown:
-        raise ValueError(f"Unbekannte Sprachcodes: {sorted(unknown)}")
+    errors = []
 
-    duplicates = df.duplicated(subset=["scenario_id", "language"])
-    if duplicates.any():
-        rows = df.loc[duplicates, ["scenario_id", "language"]]
-        raise ValueError(
-            "Doppelte Szenario-Sprach-Kombinationen:\n"
-            f"{rows.to_string(index=False)}"
+    if reader.fieldnames != REQUIRED_COLUMNS:
+        errors.append(
+            "Die Spalten entsprechen nicht der erwarteten Struktur."
         )
 
-    counts = df.groupby("scenario_id")["language"].nunique()
-    incomplete = counts[counts != 3]
+    scenarios = defaultdict(list)
+    seen = set()
 
-    if not incomplete.empty:
-        raise ValueError(
-            "Folgende Szenarien liegen nicht in genau drei Sprachen vor: "
-            f"{incomplete.index.tolist()}"
-        )
+    for line_number, row in enumerate(rows, start=2):
+        scenario_id = row["scenario_id"].strip()
+        language = row["language"].strip().lower()
+        dimension = row["dimension"].strip().lower()
+        preference = row["target_preference"].strip().lower()
+        target_option = row["target_option"].strip().upper()
 
-    for scenario_id, group in df.groupby("scenario_id"):
-        languages = set(group["language"].astype(str))
+        if not all(row[column].strip() for column in REQUIRED_COLUMNS):
+            errors.append(f"Zeile {line_number}: Ein Wert fehlt.")
 
-        if languages != EXPECTED_LANGUAGES:
-            raise ValueError(
-                f"Szenario {scenario_id} enthält nicht exakt en, de und tr."
+        if language not in VALID_LANGUAGES:
+            errors.append(
+                f"Zeile {line_number}: Ungültige Sprache '{language}'."
             )
 
-    print(
-        f"Datensatz gültig: {df['scenario_id'].nunique()} Szenarien, "
-        f"{len(df)} Sprachversionen."
-    )
+        if dimension not in VALID_PREFERENCES:
+            errors.append(
+                f"Zeile {line_number}: Ungültige Dimension '{dimension}'."
+            )
+        elif preference not in VALID_PREFERENCES[dimension]:
+            errors.append(
+                f"Zeile {line_number}: Präferenz passt nicht zur Dimension."
+            )
+
+        if target_option not in {"A", "B"}:
+            errors.append(
+                f"Zeile {line_number}: target_option muss A oder B sein."
+            )
+
+        if row["option_a"].strip() == row["option_b"].strip():
+            errors.append(
+                f"Zeile {line_number}: Option A und B sind identisch."
+            )
+
+        key = (scenario_id, language)
+
+        if key in seen:
+            errors.append(
+                f"Zeile {line_number}: Szenario und Sprache sind doppelt."
+            )
+
+        seen.add(key)
+        scenarios[scenario_id].append(row)
+
+    for scenario_id, scenario_rows in scenarios.items():
+        languages = {
+            row["language"].strip().lower()
+            for row in scenario_rows
+        }
+
+        if languages != VALID_LANGUAGES:
+            errors.append(
+                f"Szenario {scenario_id}: Nicht alle Sprachen vorhanden."
+            )
+
+        for column in [
+            "dimension",
+            "target_preference",
+            "target_option",
+        ]:
+            values = {
+                row[column].strip().lower()
+                for row in scenario_rows
+            }
+
+            if len(values) > 1:
+                errors.append(
+                    f"Szenario {scenario_id}: '{column}' ist uneinheitlich."
+                )
+
+    if errors:
+        print("Datensatz enthält Fehler:\n")
+
+        for error in errors:
+            print(f"- {error}")
+
+        return False
+
+    print("Datensatz ist gültig.")
+    print(f"Szenarien: {len(scenarios)}")
+    print(f"Zeilen: {len(rows)}")
+
+    return True
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="Validiert den mehrsprachigen Moral-Machine-Datensatz."
-    )
-    parser.add_argument(
-        "--input",
-        required=True,
-        type=Path,
-        help="Pfad zur CSV-Datei mit den Szenarien.",
-    )
+    file_path = sys.argv[1] if len(sys.argv) > 1 else "scenarios.csv"
 
-    args = parser.parse_args()
-    validate(args.input)
+    if not validate_dataset(file_path):
+        sys.exit(1)<SXY
