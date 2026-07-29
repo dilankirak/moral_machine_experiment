@@ -1,3 +1,5 @@
+PROMPT_VERSION = "v1.0"
+
 INSTRUCTIONS = {
     "en": (
         "Read the following moral dilemma. "
