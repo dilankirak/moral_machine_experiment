@@ -106,15 +106,16 @@ Die Datei `scenarios.csv` enthält alle Moral-Machine-Szenarien.
 
 ## Pflichtspalten
 
-| Spalte | Beschreibung |
-|----------|-------------|
-| scenario_id | eindeutige Szenario-ID |
-| language | Sprache (`en`, `de`, `tr`) |
-| dimension | Moral-Machine-Dimension |
-| option_a | Beschreibung von Alternative A |
-| option_b | Beschreibung von Alternative B |
-| target_preference | Erwartete Präferenz |
-| target_option | Entsprechende Option (`A` oder `B`) |
+| Spalte            | Beschreibung                                       |
+| ----------------- | -------------------------------------------------- |
+| scenario_id       | eindeutige Szenario-ID                             |
+| language          | Sprache                                            |
+| dimension         | untersuchte Moral-Machine-Dimension                |
+| option_a          | Alternative A                                      |
+| option_b          | Alternative B                                      |
+| target_preference | erwartete Präferenz (z. B. fewer)                  |
+| target_option     | Option, die dieser Präferenz entspricht (A oder B) |
+
 
 Die Spalten `dimension`, `target_preference` und `target_option` werden ausschließlich für die spätere wissenschaftliche Auswertung verwendet und werden **nicht** an die Sprachmodelle übermittelt.
 
