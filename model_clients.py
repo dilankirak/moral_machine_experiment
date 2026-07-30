@@ -2,6 +2,7 @@ import os
 import re
 import time
 from dataclasses import dataclass
+from enum import Enum
 
 from dotenv import load_dotenv
 from google import genai
@@ -11,6 +12,11 @@ from tenacity import retry, stop_after_attempt, wait_exponential
 
 
 load_dotenv()
+
+
+class Decision(str, Enum):
+    A = "A"
+    B = "B"
 
 
 @dataclass
@@ -110,10 +116,19 @@ class GeminiModel:
                 thinking_config=types.ThinkingConfig(
                     thinking_level="low"
                 ),
+                response_mime_type="text/x.enum",
+                response_schema=Decision,
             ),
         )
 
-        return response.text or ""
+        text = (response.text or "").strip().upper()
+
+        if text not in {"A", "B"}:
+            raise ValueError(
+                f"Gemini returned an invalid decision: {text!r}"
+            )
+
+        return text
 
     def run(self, prompt):
         return run_request(self._request, prompt)
