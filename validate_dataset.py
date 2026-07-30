@@ -22,6 +22,10 @@ VALID_PREFERENCES = {
     "species": {"humans", "animals"},
     "role": {"pedestrians", "passengers"},
     "law": {"lawful", "unlawful"},
+    "gender": {"female", "male"},
+    "fitness": {"fit", "unfit"},
+    "social_status": {"higher_status", "lower_status"},
+    "intervention": {"inaction", "action"},
 }
 
 
