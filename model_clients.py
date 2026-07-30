@@ -5,6 +5,7 @@ from dataclasses import dataclass
 
 from dotenv import load_dotenv
 from google import genai
+from google.genai import types
 from openai import OpenAI
 from tenacity import retry, stop_after_attempt, wait_exponential
 
@@ -103,10 +104,13 @@ class GeminiModel:
         response = self.client.models.generate_content(
             model=self.model,
             contents=prompt,
-            config={
-                "temperature": 0,
-                "max_output_tokens": 16,
-            },
+            config=types.GenerateContentConfig(
+                temperature=0,
+                max_output_tokens=128,
+                thinking_config=types.ThinkingConfig(
+                    thinking_level="low"
+                ),
+            ),
         )
 
         return response.text or ""
