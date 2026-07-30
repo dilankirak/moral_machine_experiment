@@ -16,6 +16,10 @@ def load_existing(path):
     return pd.read_csv(path) if path.exists() else pd.DataFrame()
 
 
+def normalize_scenario_id(value):
+    return str(value).lstrip("0") or "0"
+
+
 def completed_keys(existing):
     required = {"scenario_id", "language", "provider", "status"}
 
@@ -23,7 +27,11 @@ def completed_keys(existing):
         return set()
 
     return {
-        (str(row.scenario_id), str(row.language), str(row.provider))
+        (
+            normalize_scenario_id(row.scenario_id),
+            str(row.language),
+            str(row.provider),
+        )
         for row in existing[existing["status"] == "ok"].itertuples()
     }
 
@@ -75,7 +83,7 @@ def main(input_path, output_path, limit=None, shuffle=False):
             current += 1
 
             key = (
-                str(row.scenario_id),
+                normalize_scenario_id(row.scenario_id),
                 str(row.language),
                 provider,
             )
