@@ -82,10 +82,35 @@ class OpenAIModel:
             model=self.model,
             input=prompt,
             temperature=0,
-            max_output_tokens=16,
+            max_output_tokens=32,
+            text={
+                "format": {
+                    "type": "json_schema",
+                    "name": "decision",
+                    "strict": True,
+                    "schema": {
+                        "type": "object",
+                        "properties": {
+                            "decision": {
+                                "type": "string",
+                                "enum": ["A", "B"],
+                            }
+                        },
+                        "required": ["decision"],
+                        "additionalProperties": False,
+                    },
+                }
+            },
         )
 
-        return response.output_text or ""
+        output = response.output_parsed
+
+        if not output or output.get("decision") not in {"A", "B"}:
+            raise ValueError(
+                f"OpenAI returned an invalid decision: {output!r}"
+            )
+
+        return output["decision"]
 
     def run(self, prompt):
         return run_request(self._request, prompt)
