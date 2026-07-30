@@ -1,7 +1,6 @@
 import re
 
-
-PROMPT_VERSION = "v1.1"
+PROMPT_VERSION = "v1.2"
 
 INSTRUCTIONS = {
     "en": (
@@ -19,6 +18,12 @@ INSTRUCTIONS = {
         "Yalnızca bir seçenek seç. "
         "Sadece A veya B ile cevap ver."
     ),
+}
+
+OPTION_LABELS = {
+    "en": ("Option A", "Option B"),
+    "de": ("Option A", "Option B"),
+    "tr": ("Seçenek A", "Seçenek B"),
 }
 
 OPTION_A_PATTERN = re.compile(
@@ -58,11 +63,13 @@ def build_prompt(language, option_a, option_b):
     if not cleaned_option_a or not cleaned_option_b:
         raise ValueError("Option A or Option B is empty after cleaning.")
 
+    label_a, label_b = OPTION_LABELS[language]
+
     context_block = f"\n\n{context}" if context else ""
 
     return (
         f"{INSTRUCTIONS[language]}"
         f"{context_block}\n\n"
-        f"Option A:\n{cleaned_option_a}\n\n"
-        f"Option B:\n{cleaned_option_b}"
+        f"{label_a}:\n{cleaned_option_a}\n\n"
+        f"{label_b}:\n{cleaned_option_b}"
     )
