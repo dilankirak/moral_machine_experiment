@@ -1,3 +1,4 @@
+import json
 import os
 import re
 import time
@@ -103,14 +104,16 @@ class OpenAIModel:
             },
         )
 
-        output = response.output_parsed
+        raw_text = response.output_text or ""
+        data = json.loads(raw_text)
+        decision = data.get("decision")
 
-        if not output or output.get("decision") not in {"A", "B"}:
+        if decision not in {"A", "B"}:
             raise ValueError(
-                f"OpenAI returned an invalid decision: {output!r}"
+                f"OpenAI returned an invalid decision: {raw_text!r}"
             )
 
-        return output["decision"]
+        return decision
 
     def run(self, prompt):
         return run_request(self._request, prompt)
